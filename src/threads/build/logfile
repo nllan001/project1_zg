@@ -1,0 +1,9 @@
+qemu -hda /tmp/dj30vnH1IL.dsk -m 4 -net none -serial stdio
+PiLo hda1
+Loading........
+Kernel command line: --bochs run alarm-multiple
+Kernel PANIC at ../../threads/init.c:264 in parse_options(): unknown option `--bochs' (use -h for help)
+Call stack: 0xc0028309 0xc0020400.
+The `backtrace' program can make call stacks useful.
+Read "Backtraces" in the "Debugging Tools" chapter
+of the Pintos documentation for more information.
