@@ -1,0 +1,7 @@
+Line numbers are subject to change. The actual change locations
+can be seen in the code as separated by large comment lines.
+
+- Added a sleeping queue to thread.h line 107
+- Added a sleeping queue init call to thread.c line 101
+- Added a thread_sleep struct to thread.h line 112
+

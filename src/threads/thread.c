@@ -4,6 +4,7 @@
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
+#include "threads/malloc.h"
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
@@ -23,6 +24,10 @@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
+
+////////////////////////////////////////
+static struct list sleep_list;
+////////////////////////////////////////
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -92,6 +97,10 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+/////////////////////////////////////////////////////////////
+// Initialize the sleeping queue
+	list_init (&sleep_list);
+/////////////////////////////////////////////////////////////
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -99,6 +108,82 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
 }
+
+/////////////////////////////////////////////////////////////
+// Comparator function for threads and their sleeping times
+bool thread_less(const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+	struct thread *thread_a = list_entry(a, struct thread, elem);
+	struct thread *thread_b = list_entry(b, struct thread, elem);
+	return thread_a->waketime < thread_b->waketime;
+}
+/////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////
+// Comparator function for threads and their sleeping times
+bool thread_priority(const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+	struct thread *thread_a = list_entry(a, struct thread, elem);
+	struct thread *thread_b = list_entry(b, struct thread, elem);
+	return thread_a->priority < thread_b->priority;
+}
+/////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////
+// Comparator function for threads and their sleeping times
+bool thread_priority_sem(const struct list_elem *a, const struct list_elem *b, void *aux)
+{
+	struct thread *thread_a = list_entry(a, struct thread, elem);
+	struct thread *thread_b = list_entry(b, struct thread, elem);
+	return thread_a->priority > thread_b->priority;
+}
+/////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////
+// Function that is run by the timer_sleep function to insert a thread into the sleeping queue
+void thread_sleeper(int64_t waketime)
+{
+	thread_current()->waketime = waketime;
+	list_insert_ordered(&sleep_list, &thread_current()->elem, thread_less, NULL);
+	enum intr_level old_level = intr_disable();
+	thread_block();
+	intr_set_level(old_level);
+}
+////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////
+// Donate priority between threads
+void donate_priority(struct thread *donor, struct thread *recipient)
+{
+  donor->donated_to = recipient;
+  donor->recipient_priority = recipient->priority;
+  recipient->priority = donor->priority;
+  recipient->donor = donor;
+  struct thread *tmp = donor;
+  for(; tmp != NULL; tmp = tmp->donated_to)
+  {
+    tmp->priority = recipient->priority;
+  }
+  list_remove(&recipient->elem);
+  list_push_front(&ready_list, &recipient->elem);
+  thread_block();
+}
+////////////////////////////////////////////////////////////
+
+/*
+////////////////////////////////////////////////////////////
+// Restore donor from a lock release
+void restore_donor(void)
+{
+	list_remove(&thread_current()->donor->elem);
+	list_push_front(&ready_list, &thread_current()->donor->elem);
+	thread_current()->priority = thread_current()->donor->recipient_priority;
+	thread_current()->donor->donated_to = NULL;
+	thread_current()->donor = NULL;
+	thread_yield();
+}
+////////////////////////////////////////////////////////////
+*/
 
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
@@ -136,7 +221,27 @@ thread_tick (void)
 
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
+	{
     intr_yield_on_return ();
+	}
+
+///////////////////////////////////////////////
+// Goes through sleeping queue and keeps checking
+// for threads that are done sleeping
+	if(!list_empty(&sleep_list))
+	{
+		int64_t total_ticks = (int64_t)idle_ticks + (int64_t)user_ticks + (int64_t)kernel_ticks;
+		while(!list_empty(&sleep_list))
+		{
+			if(list_entry(list_front(&sleep_list),struct thread, elem)->waketime <= total_ticks)
+			{
+				thread_unblock(list_entry(list_pop_front(&sleep_list), struct thread, elem));
+			}
+			else
+				break;
+		}
+	}
+///////////////////////////////////////////////
 }
 
 /* Prints thread statistics. */
@@ -207,7 +312,21 @@ thread_create (const char *name, int priority,
   intr_set_level (old_level);
 
   /* Add to run queue. */
+/////////////////////////////////////////////////
+// Initialize thread's donor list
+	//list_init(&t->donors);
+/////////////////////////////////////////////////
   thread_unblock (t);
+
+/////////////////////////////////////////////////
+// Check for priority being above current thread
+	if(!list_empty(&ready_list) && t->priority >= thread_current()->priority)
+	{
+		list_remove(&t->elem);
+		list_push_front(&ready_list, &t->elem);
+		thread_yield();
+	}
+/////////////////////////////////////////////////
 
   return tid;
 }
@@ -316,7 +435,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+  	list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -344,6 +463,19 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+/////////////////////////////////////////////////
+// Check for priority being above current thread
+	if(!list_empty(&ready_list))
+	{
+		struct thread *max = list_entry(list_max(&ready_list, thread_priority, NULL), struct thread, elem);
+		if(max->priority >= new_priority)
+		{
+			list_remove(&max->elem);
+			list_push_front(&ready_list, &max->elem);
+			thread_yield();
+		}
+	}
+/////////////////////////////////////////////////
 }
 
 /* Returns the current thread's priority. */
@@ -495,8 +627,15 @@ next_thread_to_run (void)
 {
   if (list_empty (&ready_list))
     return idle_thread;
-  else
-    return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  else 
+  {
+	struct list_elem *max = list_max(&ready_list, thread_priority, NULL);
+	list_remove(max);
+	struct thread *next_thread = list_entry(max, struct thread, elem);
+	ASSERT(is_thread(next_thread));
+	return next_thread;
+    //return list_entry (list_pop_front (&ready_list), struct thread, elem);
+  }
 }
 
 /* Completes a thread switch by activating the new thread's page
@@ -511,8 +650,7 @@ next_thread_to_run (void)
 
    It's not safe to call printf() until the thread switch is
    complete.  In practice that means that printf()s should be
-   added at the end of the function.
-
+   added at the end of the function.  
    After this function and its caller returns, the thread switch
    is complete. */
 void

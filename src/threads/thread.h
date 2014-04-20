@@ -4,6 +4,8 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include "../devices/timer.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -80,6 +82,7 @@ typedef int tid_t;
    only because they are mutually exclusive: only a thread in the
    ready state is on the run queue, whereas only a thread in the
    blocked state is on a semaphore wait list. */
+
 struct thread
   {
     /* Owned by thread.c. */
@@ -89,8 +92,8 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
-
     /* Shared between thread.c and synch.c. */
+		/* Changing it so that it isn't shared because of possible problems */
     struct list_elem elem;              /* List element. */
 
 #ifdef USERPROG
@@ -100,7 +103,45 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+///////////////////////////////////////////
+// New data member to keep track of time to wake up
+	int64_t waketime;
+	struct thread *donated_to;
+	struct thread *donor;
+	int recipient_priority;
+///////////////////////////////////////////
   };
+
+///////////////////////////////////////////
+// Donate priority
+void donate_priority(struct thread *donor, struct thread *recipient);
+///////////////////////////////////////////
+
+///////////////////////////////////////////
+// Restore donor in a lock release
+void restore_donor(void);
+///////////////////////////////////////////
+
+///////////////////////////////////////////
+// Function to put a thread to sleep with it's wake up time
+void thread_sleeper (int64_t waketime);
+///////////////////////////////////////////
+
+///////////////////////////////////////////
+// Comparison function for thread_tick
+bool thread_less(const struct list_elem *a, const struct list_elem *b, void *aux);
+///////////////////////////////////////////
+
+///////////////////////////////////////////
+// Comparison function for thread priority
+bool thread_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
+///////////////////////////////////////////
+
+///////////////////////////////////////////
+// Comparison function for thread priority
+bool thread_priority_sem(const struct list_elem *a, const struct list_elem *b, void *aux);
+///////////////////////////////////////////
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.

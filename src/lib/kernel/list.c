@@ -268,8 +268,7 @@ list_pop_front (struct list *list)
    Undefined behavior if LIST is empty before removal. */
 struct list_elem *
 list_pop_back (struct list *list)
-{
-  struct list_elem *back = list_back (list);
+{ struct list_elem *back = list_back (list);
   list_remove (back);
   return back;
 }
@@ -345,7 +344,10 @@ is_sorted (struct list_elem *a, struct list_elem *b,
   if (a != b)
     while ((a = list_next (a)) != b) 
       if (less (a, list_prev (a), aux))
+	{
+	//	ASSERT(false);
         return false;
+	}
   return true;
 }
 
