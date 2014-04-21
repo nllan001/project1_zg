@@ -170,21 +170,6 @@ void donate_priority(struct thread *donor, struct thread *recipient)
 }
 ////////////////////////////////////////////////////////////
 
-/*
-////////////////////////////////////////////////////////////
-// Restore donor from a lock release
-void restore_donor(void)
-{
-	list_remove(&thread_current()->donor->elem);
-	list_push_front(&ready_list, &thread_current()->donor->elem);
-	thread_current()->priority = thread_current()->donor->recipient_priority;
-	thread_current()->donor->donated_to = NULL;
-	thread_current()->donor = NULL;
-	thread_yield();
-}
-////////////////////////////////////////////////////////////
-*/
-
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
 void
@@ -462,6 +447,16 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+/////////////////////////////////////////////////
+// Check for donated priority
+	if(thread_current()->donor != NULL)
+	{
+		if(thread_current()->priority >= new_priority)
+		{
+			return;
+		}	
+	}
+/////////////////////////////////////////////////
   thread_current ()->priority = new_priority;
 /////////////////////////////////////////////////
 // Check for priority being above current thread

@@ -1,11 +1,11 @@
 FAIL
 Kernel panic in run: PANIC at ../../lib/kernel/list.c:84 in list_next(): assertion `is_head (elem) || is_interior (elem)' failed.
-Call stack: 0xc0028679 0xc0028aa6 0xc0029266 0xc0022d58 0xc0022eb0 0xc002c177 0xc00211d1
+Call stack: 0xc0028699 0xc0028ac6 0xc0029286 0xc0022d78 0xc0022ed0 0xc002c197 0xc00211e6
 Translation of call stack:
-0xc0028679: debug_panic (.../../lib/kernel/debug.c:38)
-0xc0028aa6: is_sorted (.../../lib/kernel/list.c:343)
-0xc0029266: list_unique (.../../lib/kernel/list.c:479)
-0xc0022d58: sema_down (.../../../threads/synch.c:77)
-0xc0022eb0: lock_acquire (...../../threads/synch.c:239)
-0xc002c177: donor_thread_func (...riority-donate-chain.c:94)
-0xc00211d1: kernel_thread (..../../threads/thread.c:565)
+0xc0028699: debug_panic (.../../lib/kernel/debug.c:38)
+0xc0028ac6: is_sorted (.../../lib/kernel/list.c:343)
+0xc0029286: list_unique (.../../lib/kernel/list.c:479)
+0xc0022d78: sema_down (.../../../threads/synch.c:77)
+0xc0022ed0: lock_acquire (...../../threads/synch.c:239)
+0xc002c197: donor_thread_func (...riority-donate-chain.c:94)
+0xc00211e6: kernel_thread (..../../threads/thread.c:560)

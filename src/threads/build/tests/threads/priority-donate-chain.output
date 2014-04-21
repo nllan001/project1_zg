@@ -1,4 +1,4 @@
-qemu -hda /tmp/H1_qmY_W4w.dsk -m 4 -net none -nographic -monitor null
+qemu -hda /tmp/EEK9KTJLVH.dsk -m 4 -net none -nographic -monitor null
 PiLo hda1
 Loading........
 Kernel command line: -q run priority-donate-chain
@@ -25,7 +25,7 @@ Executing 'priority-donate-chain':
 (priority-donate-chain) main should have priority 21.  Actual priority: 0.
 (priority-donate-chain) interloper 7 finished.
 (priority-donate-chain) Kernel PANIC at ../../lib/kernel/list.c:84 in list_next(): assertion `is_head (elem) || is_interior (elem)' failed.
-Call stack: 0xc0028679 0xc0028aa6 0xc0029266 0xc0022d58 0xc0022eb0 0xc002c177 0xc00211d1.
+Call stack: 0xc0028699 0xc0028ac6 0xc0029286 0xc0022d78 0xc0022ed0 0xc002c197 0xc00211e6.
 The `backtrace' program can make call stacks useful.
 Read "Backtraces" in the "Debugging Tools" chapter
 of the Pintos documentation for more information.

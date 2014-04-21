@@ -105,11 +105,10 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
 
 ///////////////////////////////////////////
-// New data member to keep track of time to wake up
-	int64_t waketime;
-	struct thread *donated_to;
-	struct thread *donor;
-	int recipient_priority;
+	int64_t waketime; /* Time to wake up at */
+	struct thread *donated_to; /* The thread the current thread donated to */
+	struct thread *donor; /* The thread that donated to the current thread */
+	int recipient_priority; /* The old priority of the thread the current thread donated to */
 ///////////////////////////////////////////
   };
 
@@ -119,17 +118,12 @@ void donate_priority(struct thread *donor, struct thread *recipient);
 ///////////////////////////////////////////
 
 ///////////////////////////////////////////
-// Restore donor in a lock release
-void restore_donor(void);
-///////////////////////////////////////////
-
-///////////////////////////////////////////
 // Function to put a thread to sleep with it's wake up time
 void thread_sleeper (int64_t waketime);
 ///////////////////////////////////////////
 
 ///////////////////////////////////////////
-// Comparison function for thread_tick
+// Comparison function for thread ticks in the sleeping list
 bool thread_less(const struct list_elem *a, const struct list_elem *b, void *aux);
 ///////////////////////////////////////////
 
@@ -139,7 +133,7 @@ bool thread_priority(const struct list_elem *a, const struct list_elem *b, void 
 ///////////////////////////////////////////
 
 ///////////////////////////////////////////
-// Comparison function for thread priority
+// Comparison function for thread priority in the semaphor waiters list
 bool thread_priority_sem(const struct list_elem *a, const struct list_elem *b, void *aux);
 ///////////////////////////////////////////
 
